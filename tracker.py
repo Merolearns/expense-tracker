@@ -21,6 +21,12 @@ import reports
 def month_type(value):
     if not re.fullmatch(r"\d{4}-\d{2}", value):
         raise argparse.ArgumentTypeError("month must look like 2026-10")
+    try:
+        datetime.datetime.strptime(value, "%Y-%m")
+    except ValueError:
+        # 2026-13 and friends pass the format check but match nothing,
+        # which made `summary --month 2026-13` quietly report an empty month
+        raise argparse.ArgumentTypeError(f"{value} is not a real month")
     return value
 
 
