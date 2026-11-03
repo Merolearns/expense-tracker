@@ -130,3 +130,30 @@ def import_csv(conn, path):
 
 def default_db_path():
     return os.environ.get("EXPENSE_DB", "expenses.db")
+
+
+def recurring(conn, min_months=3, lookback_months=6):
+    """Charges that repeat at the same amount in recent months.
+
+    Returns [(category, amount, n_months)] for (category, amount) pairs
+    seen in at least min_months distinct months out of the most recent
+    lookback_months that have any expenses. Sorted by amount, largest
+    first. Amounts are compared to the cent, so a $12.99 subscription
+    that bumps to $13.99 stops matching and stands out instead of
+    hiding inside an average.
+    """
+    months = {
+        r["month"]
+        for r in conn.execute("SELECT substr(date, 1, 7) AS month FROM expenses")
+    }
+    recent = set(sorted(months)[-lookback_months:])
+    seen = {}
+    for row in conn.execute("SELECT category, amount, substr(date, 1, 7) AS month FROM expenses"):
+        if row["month"] not in recent:
+            continue
+        key = (row["category"].strip(), round(row["amount"], 2))
+        seen.setdefault(key, set()).add(row["month"])
+    return sorted(
+        ((cat, amt, len(ms)) for (cat, amt), ms in seen.items() if len(ms) >= min_months),
+        key=lambda hit: -hit[1],
+    )

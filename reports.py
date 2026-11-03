@@ -76,5 +76,18 @@ def budget_check(conn, month):
     return "\n".join(lines)
 
 
-# TODO: recurring expenses -- flag subscriptions (netflix, spotify, rent)
-# that appear every month so they don't surprise the budget check.
+def recurring(conn, min_months=3, lookback_months=6):
+    """Printable list of charges that repeat most months.
+
+    Rent, Netflix, the gym: the things you don't want quietly eating the
+    budget. Detected by (category, amount) showing up in min_months of
+    the last lookback_months months -- see db.recurring().
+    """
+    hits = db.recurring(conn, min_months=min_months, lookback_months=lookback_months)
+    lines = [f"Recurring charges (last {lookback_months} months)", ""]
+    if not hits:
+        lines.append(f"Nothing repeated in {min_months}+ months. Good or lonely.")
+        return "\n".join(lines)
+    rows = [(cat, money(amount), f"{n} months") for cat, amount, n in hits]
+    lines.extend(format_table(["category", "amount", "seen in"], rows))
+    return "\n".join(lines)

@@ -7,6 +7,7 @@ Examples:
     python tracker.py summary --month 2026-10
     python tracker.py budget set groceries 400
     python tracker.py budget check
+    python tracker.py recurring      # charges that repeat most months
 """
 import argparse
 import datetime
@@ -92,6 +93,12 @@ def cmd_export(args):
     print(f"Wrote {count} expense(s) to {args.file}.")
 
 
+def cmd_recurring(args):
+    conn = db.connect(args.db)
+    print(reports.recurring(conn, min_months=args.min_months,
+                            lookback_months=args.lookback))
+
+
 def cmd_chart(args):
     conn = db.connect(args.db)
     out = args.out or f"spending-{args.month}.png"
@@ -149,6 +156,13 @@ def build_parser():
     p = sub.add_parser("export", help="dump all expenses to a CSV file")
     p.add_argument("file")
     p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("recurring", help="list charges that repeat every month")
+    p.add_argument("--min-months", type=int, default=3,
+                   help="how many distinct months make it recurring")
+    p.add_argument("--lookback", type=int, default=6,
+                   help="how many recent months to consider")
+    p.set_defaults(func=cmd_recurring)
 
     p = sub.add_parser("chart", help="save a bar chart of spending by category")
     p.add_argument("--month", type=month_type, default=current_month())

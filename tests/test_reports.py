@@ -91,3 +91,38 @@ def test_import_skips_bad_rows(conn, tmp_path):
     imported, skipped = db.import_csv(conn, str(csv_file))
     assert (imported, skipped) == (1, 2)
     assert db.grand_total(conn) == 12.5
+
+
+def seed_recurring(conn):
+    for month in ("2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"):
+        db.add_expense(conn, 1450.0, "rent", "", f"{month}-01")
+    for month in ("2026-08", "2026-09", "2026-10"):
+        db.add_expense(conn, 15.99, "subscriptions", "streamer", f"{month}-15")
+    db.add_expense(conn, 1450.0, "rent", "", "2026-01-01")  # outside lookback
+    db.add_expense(conn, 42.0, "groceries", "one-off", "2026-10-03")
+
+
+def test_recurring_finds_repeated_charges(conn):
+    seed_recurring(conn)
+    hits = db.recurring(conn)
+    assert ("rent", 1450.0, 6) in hits
+    assert ("subscriptions", 15.99, 3) in hits
+    assert all(hit[0] != "groceries" for hit in hits)
+
+
+def test_recurring_needs_min_months(conn):
+    seed_recurring(conn)
+    hits = db.recurring(conn, min_months=4)
+    assert len(hits) == 1 and hits[0][0] == "rent"
+
+
+def test_recurring_report_lists_charges(conn):
+    seed_recurring(conn)
+    text = reports.recurring(conn)
+    assert "rent" in text and "$1,450.00" in text
+    assert "subscriptions" in text and "$15.99" in text
+
+
+def test_recurring_report_quiet_when_nothing(conn):
+    seed(conn)
+    assert "Nothing repeated" in reports.recurring(conn)

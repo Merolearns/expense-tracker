@@ -52,6 +52,16 @@ Draw a chart:
 python tracker.py chart --month 2026-10 --out october.png
 ```
 
+Spot the charges that quietly repeat every month (rent, subscriptions)
+so they don't surprise the budget check:
+
+```bash
+python tracker.py recurring
+```
+
+A charge counts when the same amount in the same category shows up in
+3+ of the last 6 months; tweak with `--min-months` and `--lookback`.
+
 The database defaults to `expenses.db` in the current directory; point `EXPENSE_DB` or `--db` at another file to use a different one.
 
 ## Example session
@@ -84,7 +94,6 @@ pytest
 
 ## What I'd add next
 
-- Recurring expenses: flag subscriptions that hit every month so they don't surprise the budget check.
 - A `weekly` view -- right now everything is monthly.
 - Multi-currency would be nice, but I don't travel enough to need it yet.
 
