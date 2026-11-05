@@ -93,6 +93,22 @@ def test_import_skips_bad_rows(conn, tmp_path):
     assert db.grand_total(conn) == 12.5
 
 
+def test_import_skips_bad_dates(conn, tmp_path):
+    csv_file = tmp_path / "expenses.csv"
+    csv_file.write_text(
+        "id,amount,category,note,date\n"
+        "1,12.5,groceries,ok,2026-10-01\n"
+        # US-style date: imports fine but never matches any --month filter,
+        # so the money silently vanished from every report
+        "2,9.99,coffee,us date,10/04/2026\n"
+        # impossible date
+        "3,5.0,coffee,feb 30,2026-02-30\n"
+    )
+    imported, skipped = db.import_csv(conn, str(csv_file))
+    assert (imported, skipped) == (1, 2)
+    assert db.grand_total(conn) == 12.5
+
+
 def seed_recurring(conn):
     for month in ("2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"):
         db.add_expense(conn, 1450.0, "rent", "", f"{month}-01")

@@ -46,6 +46,10 @@ python tracker.py export backup.csv
 python tracker.py import backup.csv
 ```
 
+Rows with a bad amount, a missing category/date, or a malformed date are
+skipped and counted at the end, not imported — a bad date would otherwise
+vanish from every monthly report.
+
 Draw a chart:
 
 ```bash

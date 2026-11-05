@@ -5,6 +5,7 @@ Two tables, nothing fancy:
   budgets:   category, amount
 """
 import csv
+import datetime
 import os
 import sqlite3
 
@@ -121,6 +122,10 @@ def import_csv(conn, path):
                 date = (row.get("date") or "").strip()
                 if not category or not date:
                     raise ValueError("missing category/date")
+                # A date like 10/04/2026 or 2026-02-30 used to import fine
+                # and then never match any --month filter, so the money
+                # silently vanished from every report. Skip it instead.
+                datetime.datetime.strptime(date, "%Y-%m-%d")
                 add_expense(conn, amount, category, note, date)
                 imported += 1
             except (ValueError, KeyError, TypeError):
