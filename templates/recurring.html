@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recurring charges — expense-tracker</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Recurring charges</h1>
+    <p class="subtitle">Rent, subscriptions, the gym — the charges that quietly eat the
+      budget every month. A charge counts as recurring when the same amount
+      in the same category shows up in 3 or more of the last 6 months.
+      Amounts are compared to the cent, so a subscription that bumps its
+      price stops matching and stands out instead of hiding in an average.</p>
+    <nav><a href="{{ url_for('index') }}">&larr; Back to the dashboard</a></nav>
+  </header>
+
+  <section class="card">
+    {% if hits %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Category</th><th class="amount">Amount</th><th>Seen in</th></tr>
+        </thead>
+        <tbody>
+          {% for hit in hits %}
+          <tr>
+            <td>{{ hit.category }}</td>
+            <td class="amount">${{ "{:,.2f}".format(hit.amount) }}</td>
+            <td>{{ hit.months }} month{{ "s" if hit.months != 1 else "" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty">Nothing repeated in 3+ months. Good or lonely.</p>
+    {% endif %}
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+id,amount,category,note,date
+1,1450.00,rent,october rent,2026-10-01
+2,58.40,groceries,trader joes,2026-10-03
+3,6.50,coffee,latte,2026-10-05
+4,15.99,subscriptions,streaming,2026-10-06
+5,42.18,groceries,weekly run,2026-10-08
+6,35.00,transport,gas,2026-10-10
+7,12.00,coffee,beans,2026-10-12
+8,89.99,utilities,internet,2026-10-15
+9,24.75,groceries,farmers market,2026-10-17
+10,6.50,coffee,latte,2026-10-19
+11,18.20,transport,bus pass top-up,2026-10-21
+12,31.40,groceries,weekly run,2026-10-24

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>expense-tracker — {{ month }}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>expense-tracker</h1>
+    <p class="subtitle">Where the money went this month. Log expenses, set budgets,
+      and spot the charges that quietly repeat — all stored in a local
+      SQLite file, no accounts, no servers.</p>
+    <nav><a href="{{ url_for('recurring_page') }}">Recurring charges &rarr;</a></nav>
+  </header>
+
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+  {% if message %}
+  <div class="alert alert-ok">{{ message }}</div>
+  {% endif %}
+
+  <div class="month-nav">
+    <a class="month-link" href="{{ url_for('index', month=prev_month) }}">&larr; {{ prev_month }}</a>
+    <h2>{{ month }}</h2>
+    <a class="month-link" href="{{ url_for('index', month=next_month) }}">{{ next_month }} &rarr;</a>
+  </div>
+
+  <section class="stat-grid">
+    <div class="stat-card">
+      <span class="stat-value">${{ "{:,.2f}".format(total) }}</span>
+      <span class="stat-label">Spent in {{ month }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">{{ count }}</span>
+      <span class="stat-label">Expense{{ "s" if count != 1 else "" }} this month</span>
+    </div>
+    <div class="stat-card">
+      {% if top_category %}
+      <span class="stat-value small">{{ top_category }}</span>
+      <span class="stat-label">Top category</span>
+      <span class="stat-sub">${{ "{:,.2f}".format(top_total) }}</span>
+      {% else %}
+      <span class="stat-value small">&mdash;</span>
+      <span class="stat-label">Top category</span>
+      <span class="stat-sub">No expenses yet</span>
+      {% endif %}
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">{{ over_or_warning }}</span>
+      <span class="stat-label">Budget{{ "s" if over_or_warning != 1 else "" }} over or warning</span>
+      <span class="stat-sub">{{ budgets|length }} budget{{ "s" if budgets|length != 1 else "" }} set</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Add an expense</h2>
+    <form action="{{ url_for('add_expense') }}" method="post">
+      <input type="hidden" name="month" value="{{ month }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="amount">Amount ($)</label>
+          <input type="number" id="amount" name="amount" step="0.01" min="0.01" placeholder="12.50" required>
+        </div>
+        <div class="field">
+          <label for="category">Category</label>
+          <input type="text" id="category" name="category" placeholder="groceries" required>
+        </div>
+        <div class="field">
+          <label for="note">Note</label>
+          <input type="text" id="note" name="note" placeholder="weekly run">
+        </div>
+        <div class="field">
+          <label for="date">Date</label>
+          <input type="date" id="date" name="date" value="{{ today }}">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Add expense</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Spending by category</h2>
+    {% if categories %}
+    {% for cat in categories %}
+    <div class="bar-row">
+      <div class="bar-head">
+        <span>{{ cat.name }}</span>
+        <span class="bar-total">${{ "{:,.2f}".format(cat.total) }}</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: {{ '%.1f'|format(cat.share) }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+    {% if has_chart %}
+    <img class="chart-img" src="{{ url_for('chart_png', month=month) }}" alt="Bar chart of spending by category for {{ month }}" style="margin-top: 24px;">
+    {% endif %}
+    {% else %}
+    <p class="empty">No expenses recorded yet &mdash; add one above or import the sample CSV below to see this month take shape.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Budgets</h2>
+    {% if budgets %}
+    {% for b in budgets %}
+    <div class="budget-row">
+      <div class="budget-head">
+        <span>{{ b.category }}</span>
+        <span class="budget-amounts">${{ "{:,.2f}".format(b.spent) }} of ${{ "{:,.2f}".format(b.limit) }}</span>
+      </div>
+      <div class="budget-track">
+        <div class="budget-fill {{ b.status }}" style="width: {{ [b.pct, 100]|min|round(1) }}%"></div>
+      </div>
+      <div class="budget-note">
+        <span>{{ "{:.0f}%".format(b.pct) }} used</span>
+        <span class="status {{ b.status }}">{{ b.status }}</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <p class="empty">No budgets set yet. Set one below and it will show up here next to this month's spending.</p>
+    {% endif %}
+    <form action="{{ url_for('set_budget') }}" method="post" style="margin-top: 20px;">
+      <input type="hidden" name="month" value="{{ month }}">
+      <div class="form-grid">
+        <div class="field">
+          <label for="budget-category">Category</label>
+          <input type="text" id="budget-category" name="category" placeholder="groceries" required>
+        </div>
+        <div class="field">
+          <label for="budget-amount">Monthly budget ($)</label>
+          <input type="number" id="budget-amount" name="amount" step="0.01" min="0.01" placeholder="400" required>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Set budget</button>
+        <span class="form-note">Warns at 80% of budget, flags again once over.</span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Recent expenses &mdash; {{ month }}</h2>
+    {% if recent %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Category</th><th>Note</th><th class="amount">Amount</th></tr>
+        </thead>
+        <tbody>
+          {% for row in recent %}
+          <tr>
+            <td>{{ row["date"] }}</td>
+            <td>{{ row["category"] }}</td>
+            <td class="note">{{ row["note"] }}</td>
+            <td class="amount">${{ "{:,.2f}".format(row["amount"]) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty">No expenses recorded yet &mdash; add one above or import the sample CSV.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Import &amp; export</h2>
+    <form action="{{ url_for('import_csv') }}" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="month" value="{{ month }}">
+      <div class="io-row">
+        <input type="file" name="csv" accept=".csv,text/csv" required>
+        <button type="submit" class="btn btn-primary">Import CSV</button>
+        <a class="btn btn-ghost" href="{{ url_for('export_csv') }}">Export all expenses</a>
+      </div>
+    </form>
+    <p class="io-hint">CSV columns: amount, category, note, date (YYYY-MM-DD). Rows with a
+      bad amount, missing category, or malformed date are skipped and counted.
+      New to the app? Import the <a href="{{ url_for('sample_csv') }}">sample expenses CSV</a> (October 2026, 12 rows) to try it out — or
+      grab it from <code>samples/sample-expenses.csv</code> in the repo.</p>
+  </section>
+</div>
+</body>
+</html>
