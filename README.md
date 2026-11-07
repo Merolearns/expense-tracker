@@ -12,6 +12,22 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Web UI
+
+The same tracker, in the browser. The dashboard shows the month's total,
+expense count, top category, a per-category breakdown with the matplotlib
+chart, budget progress bars, a form to log expenses, and import/export.
+
+```bash
+python app.py
+```
+
+Then open http://127.0.0.1:5000 — it uses the same `expenses.db` (or
+`$EXPENSE_DB`) as the CLI, so anything logged in the terminal shows up on
+the dashboard and vice versa. The sample file in
+`samples/sample-expenses.csv` (October 2026, 12 rows) can be imported from
+the dashboard to try it out.
+
 ## Usage
 
 Log an expense:
