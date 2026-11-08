@@ -122,6 +122,12 @@ def import_csv(conn, path):
                 date = (row.get("date") or "").strip()
                 if not category or not date:
                     raise ValueError("missing category/date")
+                # The CLI and the web form both reject zero and negative
+                # amounts, but the import path let them through -- a -50 row
+                # quietly shrank the month's total. Skip it like any
+                # other bad row.
+                if amount <= 0:
+                    raise ValueError("amount must be positive")
                 # A date like 10/04/2026 or 2026-02-30 used to import fine
                 # and then never match any --month filter, so the money
                 # silently vanished from every report. Skip it instead.

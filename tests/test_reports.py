@@ -109,6 +109,21 @@ def test_import_skips_bad_dates(conn, tmp_path):
     assert db.grand_total(conn) == 12.5
 
 
+def test_import_skips_non_positive_amounts(conn, tmp_path):
+    csv_file = tmp_path / "expenses.csv"
+    csv_file.write_text(
+        "id,amount,category,note,date\n"
+        "1,12.5,groceries,ok,2026-10-01\n"
+        # a negative row would quietly shrink the month's total, and a
+        # zero row is not an expense at all -- same as the CLI, skip them
+        "2,-50.0,groceries,refund?,2026-10-02\n"
+        "3,0,coffee,free sample,2026-10-03\n"
+    )
+    imported, skipped = db.import_csv(conn, str(csv_file))
+    assert (imported, skipped) == (1, 2)
+    assert db.grand_total(conn) == 12.5
+
+
 def seed_recurring(conn):
     for month in ("2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10"):
         db.add_expense(conn, 1450.0, "rent", "", f"{month}-01")
