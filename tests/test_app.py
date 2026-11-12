@@ -62,6 +62,34 @@ def test_add_zero_amount_returns_error_not_500(client):
     assert b"more than $0.00" in resp.data
 
 
+@pytest.mark.parametrize("amount", ["nan", "inf", "-inf"])
+def test_add_non_finite_amount_rejected(client, amount):
+    # float() parses these, and nan <= 0 is False, so they used to be saved
+    resp = client.post(
+        "/add",
+        data={"amount": amount, "category": "groceries", "date": "2026-10-04",
+              "month": "2026-10"},
+    )
+    assert resp.status_code == 400
+    assert b"more than $0.00" in resp.data
+    conn = db.connect(_db_path(client))
+    assert db.list_expenses(conn) == []
+    conn.close()
+
+
+@pytest.mark.parametrize("amount", ["nan", "inf", "-inf"])
+def test_budget_non_finite_amount_rejected(client, amount):
+    resp = client.post(
+        "/budget",
+        data={"category": "groceries", "amount": amount, "month": "2026-10"},
+    )
+    assert resp.status_code == 400
+    assert b"more than $0.00" in resp.data
+    conn = db.connect(_db_path(client))
+    assert db.get_budgets(conn) == []
+    conn.close()
+
+
 def test_add_empty_category_returns_error_not_500(client):
     resp = client.post(
         "/add",

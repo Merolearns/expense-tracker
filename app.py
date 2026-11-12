@@ -8,6 +8,7 @@ it afterwards, so tests can point the app at a throwaway database.
 
 import datetime
 import io
+import math
 import os
 import re
 import tempfile
@@ -143,7 +144,9 @@ def add_expense():
         return render_dashboard(
             month, error="Enter an amount as a number, like 12.50.", status=400
         )
-    if amount <= 0:
+    # float() accepts "nan"/"inf", and nan <= 0 is False, so without this
+    # a NaN amount would be saved and every total would read $nan.
+    if not math.isfinite(amount) or amount <= 0:
         return render_dashboard(
             month, error="Amount must be more than $0.00.", status=400
         )
@@ -182,7 +185,8 @@ def set_budget():
         return render_dashboard(
             month, error="Enter a category to set a budget for.", status=400
         )
-    if amount <= 0:
+    # float() accepts "nan"/"inf" too — same guard as /add.
+    if not math.isfinite(amount) or amount <= 0:
         return render_dashboard(
             month, error="Budget must be more than $0.00.", status=400
         )
