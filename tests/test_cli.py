@@ -35,3 +35,11 @@ def test_date_type_rejects_impossible_dates():
         tracker.date_type("2026-02-30")
     with pytest.raises(argparse.ArgumentTypeError):
         tracker.date_type("2026-13-01")
+
+
+def test_import_missing_file_is_a_clean_error_not_a_traceback(tmp_path):
+    # `tracker.py import nope.csv` used to die with a bare traceback
+    args = argparse.Namespace(db=str(tmp_path / "t.db"),
+                              file=str(tmp_path / "nope.csv"))
+    with pytest.raises(SystemExit, match="no such file"):
+        tracker.cmd_import(args)

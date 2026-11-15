@@ -80,7 +80,11 @@ def cmd_budget_check(args):
 
 def cmd_import(args):
     conn = db.connect(args.db)
-    imported, skipped = db.import_csv(conn, args.file)
+    try:
+        imported, skipped = db.import_csv(conn, args.file)
+    except FileNotFoundError:
+        # A missing file used to die with a bare traceback; say so plainly.
+        sys.exit(f"error: no such file: {args.file}")
     msg = f"Imported {imported} expense(s) from {args.file}."
     if skipped:
         msg += f" Skipped {skipped} bad row(s)."
