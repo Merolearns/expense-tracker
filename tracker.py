@@ -11,6 +11,7 @@ Examples:
 """
 import argparse
 import datetime
+import math
 import re
 import sys
 
@@ -179,7 +180,10 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
     amount = getattr(args, "amount", None)
-    if amount is not None and amount <= 0:
+    # float() parses "nan"/"inf", and nan <= 0 is False, so without the
+    # isfinite check a NaN amount would be saved and every total would
+    # read $nan -- same guard the web form in app.py already has.
+    if amount is not None and (not math.isfinite(amount) or amount <= 0):
         sys.exit("error: amount must be positive")
     args.func(args)
 

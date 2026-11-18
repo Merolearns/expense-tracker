@@ -43,3 +43,16 @@ def test_import_missing_file_is_a_clean_error_not_a_traceback(tmp_path):
                               file=str(tmp_path / "nope.csv"))
     with pytest.raises(SystemExit, match="no such file"):
         tracker.cmd_import(args)
+
+
+def test_non_finite_amounts_are_rejected(tmp_path):
+    # float() parses "nan"/"inf", and nan <= 0 is False, so both used to
+    # be saved -- a NaN expense corrupts every total that touches it.
+    db_path = str(tmp_path / "t.db")
+    for argv in (["add", "nan", "groceries"], ["add", "inf", "groceries"],
+                 ["budget", "set", "groceries", "inf"]):
+        with pytest.raises(SystemExit, match="amount must be positive"):
+            tracker.main(["--db", db_path] + argv)
+    # rejected before any command runs, so the database was never created
+    import os
+    assert not os.path.exists(db_path)
