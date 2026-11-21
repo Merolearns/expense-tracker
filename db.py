@@ -6,6 +6,7 @@ Two tables, nothing fancy:
 """
 import csv
 import datetime
+import math
 import os
 import sqlite3
 
@@ -125,8 +126,11 @@ def import_csv(conn, path):
                 # The CLI and the web form both reject zero and negative
                 # amounts, but the import path let them through -- a -50 row
                 # quietly shrank the month's total. Skip it like any
-                # other bad row.
-                if amount <= 0:
+                # other bad row. float() also parses "nan" and "inf",
+                # and nan <= 0 is False, so the <= 0 check alone let
+                # those through too -- and one nan row turned every
+                # total into $nan.
+                if not math.isfinite(amount) or amount <= 0:
                     raise ValueError("amount must be positive")
                 # A date like 10/04/2026 or 2026-02-30 used to import fine
                 # and then never match any --month filter, so the money

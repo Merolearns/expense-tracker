@@ -93,6 +93,21 @@ def test_import_skips_bad_rows(conn, tmp_path):
     assert db.grand_total(conn) == 12.5
 
 
+def test_import_skips_non_finite_amounts(conn, tmp_path):
+    csv_file = tmp_path / "expenses.csv"
+    csv_file.write_text(
+        "id,amount,category,note,date\n"
+        "1,12.5,groceries,ok,2026-10-01\n"
+        # float() parses nan/inf and nan <= 0 is False, so the old
+        # guard let these through and one nan row poisoned every total
+        "2,nan,groceries,broken,2026-10-02\n"
+        "3,inf,coffee,broken,2026-10-03\n"
+    )
+    imported, skipped = db.import_csv(conn, str(csv_file))
+    assert (imported, skipped) == (1, 2)
+    assert db.grand_total(conn) == 12.5
+
+
 def test_import_skips_bad_dates(conn, tmp_path):
     csv_file = tmp_path / "expenses.csv"
     csv_file.write_text(
