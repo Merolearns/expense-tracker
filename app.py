@@ -6,6 +6,7 @@ sqlite connection (db.default_db_path() respects $EXPENSE_DB) and closes
 it afterwards, so tests can point the app at a throwaway database.
 """
 
+import csv
 import datetime
 import io
 import math
@@ -220,7 +221,17 @@ def import_csv():
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(upload.read())
-        imported, skipped = db.import_csv(get_conn(), path)
+        try:
+            imported, skipped = db.import_csv(get_conn(), path)
+        except (UnicodeDecodeError, csv.Error):
+            # A binary file renamed to .csv, or a CSV saved in a
+            # non-UTF-8 encoding, fails while the reader advances --
+            # outside import_csv's per-row try, so it used to 500 here.
+            return render_dashboard(
+                month,
+                error="That file doesn't look like a CSV — pick a plain-text .csv file.",
+                status=400,
+            )
     finally:
         os.unlink(path)
 

@@ -192,6 +192,25 @@ def test_import_counts_bad_rows(client):
     assert b"Imported 1 expense(s). Skipped 1 bad row(s)." in resp.data
 
 
+def test_import_binary_file_returns_error_not_500(client):
+    # A PNG renamed to .csv passes the filename check, then used to 500:
+    # the decode error escapes import_csv's per-row try, which only
+    # catches bad rows, not an unreadable file.
+    resp = client.post(
+        "/import",
+        data={
+            "csv": (io.BytesIO(b"\x89PNG\r\n\x1a\n\x00\x01\x02garbage"), "photo.csv"),
+            "month": "2026-10",
+        },
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 400
+    assert b"look like a CSV" in resp.data
+    conn = db.connect(_db_path(client))
+    assert db.list_expenses(conn) == []
+    conn.close()
+
+
 def test_sample_csv_downloads(client):
     resp = client.get("/sample")
     assert resp.status_code == 200
