@@ -114,7 +114,11 @@ def import_csv(conn, path):
     the one time I did it the strict way I lost 40 rows to a single typo.
     """
     imported, skipped = 0, 0
-    with open(path, newline="") as f:
+    # utf-8-sig strips a BOM if one is there (Excel saves CSVs with one
+    # by default) and reads exactly like utf-8 otherwise -- without it
+    # the first header came out as "\ufeffamount" and every row was
+    # skipped as a bad row even though the file was fine.
+    with open(path, newline="", encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
             try:
                 amount = float(row["amount"])

@@ -172,3 +172,19 @@ def test_recurring_report_lists_charges(conn):
 def test_recurring_report_quiet_when_nothing(conn):
     seed(conn)
     assert "Nothing repeated" in reports.recurring(conn)
+
+
+def test_import_handles_excel_bom(conn, tmp_path):
+    csv_file = tmp_path / "expenses.csv"
+    # Excel saves CSVs with a UTF-8 BOM by default; the BOM used to make
+    # DictReader see the first header as "\ufeffamount", so every row
+    # was skipped as a bad row and a good file imported nothing.
+    csv_file.write_bytes(
+        b"\xef\xbb\xbf"
+        b"amount,category,note,date\n"
+        b"12.5,groceries,ok,2026-10-01\n"
+        b"9.99,coffee,ok,2026-10-02\n"
+    )
+    imported, skipped = db.import_csv(conn, str(csv_file))
+    assert (imported, skipped) == (2, 0)
+    assert db.grand_total(conn) == pytest.approx(22.49)
