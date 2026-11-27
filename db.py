@@ -139,7 +139,13 @@ def import_csv(conn, path):
                 # A date like 10/04/2026 or 2026-02-30 used to import fine
                 # and then never match any --month filter, so the money
                 # silently vanished from every report. Skip it instead.
-                datetime.datetime.strptime(date, "%Y-%m-%d")
+                # strptime accepts "2026-2-4", but storing it raw broke
+                # every --month filter (substr(date, 1, 7) is "2026-2-"),
+                # so the row imported fine and then vanished from every
+                # report -- store the canonical YYYY-MM-DD form instead,
+                # the same form the CLI's date_type already produces.
+                date = datetime.datetime.strptime(
+                    date, "%Y-%m-%d").date().isoformat()
                 add_expense(conn, amount, category, note, date)
                 imported += 1
             except (ValueError, KeyError, TypeError):

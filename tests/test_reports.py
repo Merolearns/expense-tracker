@@ -124,6 +124,24 @@ def test_import_skips_bad_dates(conn, tmp_path):
     assert db.grand_total(conn) == 12.5
 
 
+def test_import_normalizes_non_padded_dates(conn, tmp_path):
+    csv_file = tmp_path / "expenses.csv"
+    csv_file.write_text(
+        "id,amount,category,note,date\n"
+        "1,12.5,groceries,ok,2026-2-4\n"
+    )
+    # strptime accepts "2026-2-4", but the raw string used to be stored
+    # as-is, so substr(date, 1, 7) came out "2026-2-" and the row never
+    # matched any --month filter -- the money silently vanished from
+    # every report even though the import reported success
+    imported, skipped = db.import_csv(conn, str(csv_file))
+    assert (imported, skipped) == (1, 0)
+    rows = db.list_expenses(conn, month="2026-02")
+    assert len(rows) == 1
+    assert rows[0]["date"] == "2026-02-04"
+    assert db.grand_total(conn, "2026-02") == 12.5
+
+
 def test_import_skips_non_positive_amounts(conn, tmp_path):
     csv_file = tmp_path / "expenses.csv"
     csv_file.write_text(
